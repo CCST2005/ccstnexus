@@ -3,19 +3,101 @@
 namespace App\Http\Controllers;
 use App\Models\Adminsection;
 use App\Models\AdminDepartments;
+use App\Models\acadYear;
+use App\Models\sectioning;
 use App\Models\listCourse;
 use Illuminate\Http\Request;
 use App\Models\AdminTeacher;
 use Illuminate\Support\Facades\Storage;
 class AdminSections extends Controller
 {
-    public function section(Request $request, $department){
+    public function section(Request $request, $department, $year, $semester, $course ){
+
+        // $acads = sectioning::where('semester', '2')->get();
+        // foreach($acads as $updating){
+        //     $sectionNAME = Adminsection::where('id', $updating->section)->first();
+        //     $sectionNAME = $sectionNAME->section;
+
+
+        //     $sections = Adminsection::where('semester', '2')->where('section', $sectionNAME)->first();
+        //     $sectionNewId = $sections->id;
+
+        //     $updatingId = $updating->id;
+        //     $section = sectioning::where('id', $updatingId)->update(['section' => $sectionNewId]);
+        
+
+
+        // }
+
+
+        // return;
+
+       
+        $acads = acadYear::where('current', '1')->first();
+        $acads = $acads->year;
+        $semesterName = '';
+        $courseName = '';
+        $yearID = $year;
+        $courseID = $course;
+        $semID = $semester;
+        $Adminsection = Adminsection::all();
+        $dropdownyearing = array();
+        foreach($Adminsection as $yearing){
+        $dropdownyearing[$yearing->year] = $yearing->year;
+        }
+
         $departments = AdminDepartments::where('id', $department)->get();
         if($departments->isEmpty()){
             return redirect()->route('admin.index');
         }
 
-        $departments = Adminsection::where('department', $department)->get();
+
+        $listCourse = listCourse::all();
+        $dropdownlistCourse = array();
+        foreach($listCourse as $listCourses){
+         $dropdownlistCourse[$listCourses->course] = [$listCourses->id, $listCourses->course];
+        }
+
+
+  
+        
+
+        if($year != 'original' && $semester != 'original' && $course != 'original'){
+            $departments = Adminsection::
+            where('department', $department)->
+            where('year', $year)->
+            where('semester', $semester)->
+            where('track', $course)->
+            get();
+
+            if(!$departments){
+                $departments = array();
+            }
+        }
+        else{
+            $departments = Adminsection::where('department', $department)->where('year', $acads)->get();
+            $yearID = $acads;
+
+            
+            if(!$departments){
+                $departments = array();
+            }
+        }
+        $listCoursef = listCourse::where('id', $courseID)->first();
+        if($listCoursef){
+            $courseName = ' / ' . $listCoursef->course;
+        }
+        if(intval($semester) == 1){
+
+            $semesterName = ' / 1st semester' ;
+
+        }
+        else if(intval($semester) == 2){
+            $semesterName = ' / 2nd semester' ;
+        }
+        
+
+
         $departmentID = $department;
 
         $id_name_depart = array();
@@ -28,10 +110,10 @@ class AdminSections extends Controller
             ));
         }
 
-        return view('admin.section', compact('departments', 'departmentID', 'id_name_depart'));
+        return view('admin.section', compact('semesterName','courseName','semID','courseID','dropdownlistCourse','yearID','dropdownyearing','departments', 'departmentID', 'id_name_depart'));
     }
 
-    public function add_section(Request $request, $department){
+    public function add_section(Request $request, $department, $yearID,$semesterID,$courseID){
         $idDept = $department;
        
 
@@ -44,7 +126,7 @@ class AdminSections extends Controller
         $collegeTrack = listCourse::where('id_Dept', $idDept)->get();
 
 
-        return view('admin.add_section', compact('idDept', 'collegeTrack', 'teacher'));
+        return view('admin.add_section', compact('idDept', 'collegeTrack', 'teacher', 'yearID', 'semesterID', 'courseID'));
     }
 
 
@@ -72,6 +154,8 @@ class AdminSections extends Controller
 
     public function adding_section  (Request $request)
     {
+        $acads = acadYear::where('current', '1')->first();
+        $acads = $acads->year;
         $imageName = "";
         $departments = AdminDepartments::where('id', trim($request->input('idDept')))->get();
         if($departments->isEmpty()){
@@ -114,6 +198,8 @@ class AdminSections extends Controller
             'track' => trim($request->input('track')),
             'imageName' => $imageName,
             'adviser' => trim($request->input('adviser')),
+            'semester' => trim($request->input('semester')),
+            'year' => $acads,
         ]);
 
         $add_info_admin->save();
@@ -237,7 +323,7 @@ class AdminSections extends Controller
  
     }
 
-    public function update_section  (Request $request, $id)
+    public function update_section  (Request $request, $id, $yearID,$semesterID,$courseID)
     {
 
         
@@ -252,7 +338,8 @@ class AdminSections extends Controller
         $tracksName = $tracksName->course;
 
         $teacherNames = AdminTeacher::where('id', $existingEmployee->adviser)->first();
-        return view('admin.update_section', compact('existingEmployee', 'departments', 'idDept', 'tracksName', 'teacher', 'teacherNames'));
+        
+        return view('admin.update_section', compact('yearID','semesterID','courseID','existingEmployee', 'departments', 'idDept', 'tracksName', 'teacher', 'teacherNames'));
     }
 
 
@@ -310,7 +397,7 @@ class AdminSections extends Controller
         $add_info_admin->adviser = trim($request->input('adviser'));
        
         $add_info_admin->desc = trim($request->input('desc'));
-       
+        $add_info_admin->semester = trim($request->input('semester'));
     
 
         $add_info_admin->save();

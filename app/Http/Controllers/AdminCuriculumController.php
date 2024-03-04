@@ -16,17 +16,26 @@ class AdminCuriculumController extends Controller
         return view('admin.curiculum');
     }
 
-    public function College_curriculum(){
-        $departments = AdminCuriculum::where('course', 0)->get();
-
-        $course = listCourse::where('course', 0)->get();
-
+    public function College_curriculum(Request $request, $acadsNewVar){
         
-
-        return view('admin.College_curiculum', compact('departments', 'course'));
+        $departments = AdminCuriculum::where('AcadYearsEdited', $acadsNewVar)->get();
+  
+     
+        $course = listCourse::all();
+       
+        $dropdown = array();
+        foreach($departments as $list){
+            $dropdown[$list->AcadYearsEdited] =  $list->AcadYearsEdited;
+        }
+        return view('admin.College_curiculum', compact('dropdown','departments', 'acadsNewVar' , 'course'));
     }
 
-    public function update_curriculum(Request $request, $id, $previous){
+    public function update_curriculum(Request $request, $id, $previous, $acadsNewVar){
+        $acads = acadYear::where('current', '1')->first();
+        $acads = $acads->year;
+        if($acadsNewVar != $acads){
+            return back();
+        }
 
         $curiculums = AdminCuriculum::where('id', $id)->first();
         $subjects = _subject_for_curiculum::where('owner_id', $id)->get();
@@ -57,7 +66,7 @@ class AdminCuriculumController extends Controller
         $courseID = $curiculums['courseID'];
         $previous = $previous;
         $previousID = $previous;
-        return view('admin.update_curiculum', compact('curiculums', 'subjectss', 'previous', 'courseID', 'previousID'));
+        return view('admin.update_curiculum', compact('acadsNewVar','curiculums', 'subjectss', 'previous', 'courseID', 'previousID'));
     }
 
     public function SHS_curriculum(){
@@ -76,6 +85,7 @@ class AdminCuriculumController extends Controller
 
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
+        $acadsNewVar = $acads;
         $ids = array();
 
         $subjects = AdminCuriculum::where('acadYr', $acads)->get();
@@ -103,22 +113,23 @@ class AdminCuriculumController extends Controller
 
 
        
-        foreach($subjects as $id){
+        // foreach($subjects as $id){
             
-            array_push($ids,$id->courseID);
+        //     array_push($ids,$id->courseID);
             
             
-        }
+        // }
+
         $courseComplete = array();
         
         $course = listCourse::where('academic_yr', $acads)->get();
         
         foreach($course as $coursing){
-            $countCourse = AdminCuriculum::where('courseID', $coursing['id'])->first();
+            $countCourse = AdminCuriculum::where('courseID', $coursing['id'])->where('AcadYearsEdited', $acadsNewVar)->first();
 
             if ($countCourse){
                 $yearLength = 0;
-                $countCoursesdadas = AdminCuriculum::where('courseID', $coursing['id'])->get();
+                $countCoursesdadas = AdminCuriculum::where('courseID', $coursing['id'])->where('AcadYearsEdited', $acadsNewVar)->get();
 
                 $yearLength = strval($coursing['YrLength']) * 2;
 
@@ -196,17 +207,19 @@ class AdminCuriculumController extends Controller
     
                 
 
-
+                
                 $trues = 0;
-                $countCourse = AdminCuriculum::where('courseID', $coursing['id'])->count();
+                $countCourse = AdminCuriculum::where('courseID', $coursing['id'])->where('AcadYearsEdited', $acadsNewVar)->count();
                 $coursename = $coursing['course'];
     
                 if($yearLength == $countCourse){
                     $trues = 1;
+                   
+                   
                 }
     
-                $specificFields = AdminCuriculum::select('acadYr')->where('courseID', $coursing['id'])->get();
-                //ANG COURSE AY HINDI PA NALAGAY SA KAYA MAY BUG DAPAT MAG IF1
+                $specificFields = AdminCuriculum::select('acadYr')->where('courseID', $coursing['id'])->where('AcadYearsEdited', $acadsNewVar)->get();
+
                 $yearsing = [];
                 foreach($specificFields as $years){
                     $yearsing[] = $years['acadYr'];
@@ -234,10 +247,12 @@ class AdminCuriculumController extends Controller
     
                 $Find2ndsem = AdminCuriculum::where('title', 'Clark College - 2nd Year 2nd Semester')
                     ->where('courseID', $coursing['id'])
+                    ->where('AcadYearsEdited', $acadsNewVar)
                     ->get();
     
                 $FindSummer = AdminCuriculum::where('title', $semesterSummer)
                                 ->where('courseID', $coursing['id'])
+                                ->where('AcadYearsEdited', $acadsNewVar)
                                 ->get();
     
                 if (!$Find2ndsem->isEmpty() && $FindSummer->isEmpty()) {
@@ -300,7 +315,7 @@ class AdminCuriculumController extends Controller
         
 
 
-        return view('admin.add_college_curiculum', compact('acads','courseComplete'));
+        return view('admin.add_college_curiculum', compact('acadsNewVar','acads','courseComplete'));
 
 
     }
@@ -350,12 +365,15 @@ class AdminCuriculumController extends Controller
 
     public function adding_college_curriculum  (Request $request)
     {
-
+        $acads = acadYear::where('current', '1')->first();
+        
+        $acadsNewVar = $acads->year;
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
+        $acadsNewVar = $acads;
         $ids = array();
 
-        $subjects = AdminCuriculum::where('acadYr', $acads)->get();
+        $subjects = AdminCuriculum::where('acadYr', $acads)->where('AcadYearsEdited', $acadsNewVar)->get();
         $listCourse = listCourse::where('academic_yr', $acads)->get();
         if(count($listCourse) == 0){
             
@@ -396,7 +414,7 @@ class AdminCuriculumController extends Controller
 
             $ID = strval($randomNumber1) . strval($randomNumber2) . strval($randomNumber3);
 
-            if (!AdminCuriculum::where('id', $ID)->exists()) {
+            if (!AdminCuriculum::where('id', $ID)->where('AcadYearsEdited', $acadsNewVar)->exists()) {
                 break; 
             }
         }
@@ -438,6 +456,9 @@ class AdminCuriculumController extends Controller
         return back()->with('success', $success);
     }
     public function add_subject_curriculum (Request $request, $id){
+        $acads = acadYear::where('current', '1')->first();
+
+        $acadsNewVar = $acads;
        
         $curiculumn = AdminCuriculum::where('id', $id)->first();
         $subjects = AdminSubject::all();
@@ -445,7 +466,7 @@ class AdminCuriculumController extends Controller
         return view('admin.add_subject_curriculum', compact('curiculumn','subjects','roles_registrar'));
      
     }
-    public function edit_subject_curriculum (Request $request, $id, $previous){
+    public function edit_subject_curriculum (Request $request, $id, $previous, $courseID, $acadsNewVar){
        
         $curiculumn = AdminCuriculum::where('id', $id)->first();
         $subjects = AdminSubject::all();
@@ -453,15 +474,15 @@ class AdminCuriculumController extends Controller
 
         $courseID = $curiculumn['courseID'];
         $previousID = $previous;
-        return view('admin.edit_subject_curriculum', compact('curiculumn','subjects','roles_registrar', 'courseID', 'previousID'));
+        return view('admin.edit_subject_curriculum', compact('acadsNewVar','curiculumn','subjects','roles_registrar', 'courseID', 'previousID'));
      
     }
 
-    public function editCourseCurriculum (Request $request, $id){
+    public function editCourseCurriculum (Request $request, $id, $acadsNewVar){
         $previousID = $id;
         
 
-        
+
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
 
@@ -512,7 +533,7 @@ class AdminCuriculumController extends Controller
      
         
         for($x = 0; $x != count($titles); $x++){
-            $findingCuri = AdminCuriculum::where('courseID', '=', $id)->where('title', '=', $titles[$x])->first();
+            $findingCuri = AdminCuriculum::where('courseID', '=', $id)->where('title', '=', $titles[$x])->where('AcadYearsEdited', $acadsNewVar)->first();
             if($findingCuri){
                 $curiculumn = listCourse::where('id', $id)->first();
 
@@ -548,7 +569,7 @@ class AdminCuriculumController extends Controller
         $subjects = AdminSubject::all();
         
         $roles_registrar = _subject_for_curiculum::where('owner_id', $id)->get();
-        return view('admin.editCourseCurriculum', compact('curiculumnkn','curiculumn','curiculums','subjects','roles_registrar', 'previousID'));
+        return view('admin.editCourseCurriculum', compact('acads','acadsNewVar','curiculumnkn','curiculumn','curiculums','subjects','roles_registrar', 'previousID'));
      
     }
     public function adding_subject_curriculum(Request $request){
@@ -667,14 +688,13 @@ class AdminCuriculumController extends Controller
             $token = $dataArray['_token'];
             $checkboxValues = $dataArray['checkboxes'];
             $counts = 0;
-    
+            $acads = acadYear::where('current', '1')->first();
+         
+            $acadsNewVar = $acads->year;
             foreach ($checkboxValues as $checkboxValue) {
     
-            
-    
-               
-
-                AdminCuriculum::where('courseID', $checkboxValue)->delete();
+        
+                AdminCuriculum::where('courseID', $checkboxValue)->where('AcadYearsEdited', $acadsNewVar)->delete();
                 _subject_for_curiculum::where('owner_id', $checkboxValue)->delete();
     
                 $counts++;
@@ -711,6 +731,9 @@ class AdminCuriculumController extends Controller
 
   
         if($hashedPassword === $ComparingHash){
+            $acads = acadYear::where('current', '1')->first();
+         
+            $acadsNewVar = $acads->year;
            
        
     
@@ -720,7 +743,7 @@ class AdminCuriculumController extends Controller
 
 
             
-            AdminCuriculum::where('courseID', $id)->delete();
+            AdminCuriculum::where('courseID', $id)->where('AcadYearsEdited', $acadsNewVar)->delete();
            
             _subject_for_curiculum::where('ownerCourse', $id)->delete();
 
@@ -733,7 +756,7 @@ class AdminCuriculumController extends Controller
     
           
     
-             return redirect()->route('admin.College_curriculum')->with('delete_success', $success);
+             return redirect()->route('admin.College_curriculum', ['year' => $acadsNewVar])->with('delete_success', $success);
            
 
         }
@@ -757,7 +780,9 @@ class AdminCuriculumController extends Controller
 
   
         if($hashedPassword === $ComparingHash){
-           
+            $acads = acadYear::where('current', '1')->first();
+         
+            $acadsNewVar = $acads->year;
        
     
             $finding_user_acc = AdminCuriculum::where('id', $id)->first();

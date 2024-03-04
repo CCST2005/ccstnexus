@@ -13,6 +13,6 @@ class sectioning extends Model
 
     protected $fillable = [
 
-        'owner_id', 'section',
+        'owner_id', 'section', 'academic_year', 'semester', 'markings'
     ];
 }

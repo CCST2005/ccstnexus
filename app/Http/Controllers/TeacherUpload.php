@@ -440,12 +440,16 @@ class TeacherUpload extends Controller
                 
                 $fullame = $darkmode->lastname . ", " . $darkmode->firstname . " " . $middle;
 
+                
+                $links = $darkmode->image_file_name;
+                
+                if($links == null){
+                    $links = 'default.webp';
+                  }
+               
 
                 
-                
-
-                
-                session(['user_logged_teacher' => $admin_id, 'darkmode' => $darkmode->darkmode, 'fullname' => $fullame]);
+                session(['user_logged_teacher' => $admin_id, 'darkmode' => $darkmode->darkmode, 'fullname' => $fullame, 'links' => $links]);
 
                 return redirect()->route('teacher.section');
             } else {
@@ -575,9 +579,239 @@ class TeacherUpload extends Controller
     }
 
 
+        public function adding_beta(Request $request){
+
+            $request->merge([
+                
+                'mname' => $request->input('mname') ?? '',
+                
+                
+            ]);
+            $studeno = $request->input('studno');
+            $record_admin = AdminStudent::where('student_no', $studeno)->first();
+           
+            if ($record_admin) {
+                return 'added already';
+            }
+            $indexNotvalid = 0;
+            $uniID = '';
+            $studentNo = '';
+            $bday = '';
+            $verify_question = '';
+            $verify_answer = '';
+            $firstName = '';
+            $middleName = '';
+            $lastName = '';
+            $gmail = '';
+            $regionText = '';
+            $cityText = '';
+            $province = '';
+            $barangayText = '';
+            $house = '';
+            $month = '';
+            $year = '';
+            $day = '';
+            $sex = '';
+            $sivil_status = '';
+            $citizenship = '';
+            $age = '';
+            $bdayplace = '';
+            $contactStudent = '';
+            $fFirstName = '';
+            $fMiddleName = '';
+            $fLastName = '';
+            $mFirstName = '';
+            $mMiddleName = '';
+            $mLastName = '';
+            $mOccupation = '';
+            $fOccupation = '';
+            $eFirstName = '';
+            $eMiddleName = '';
+            $eLastName = '';
+            $eRelation = '';
+            $econtact = '';
+            $eAddress = '';
+            $level = 'College';
+           
+            $fname = $request->input('fname');
+            $mname = $request->input('mname');
+            $lname = $request->input('lname');
+    
+            $student_no = $request->input('studno');
 
 
 
+            $randomNumber = random_int(1, 100);
+
+            $numbers = preg_replace("/[^0-9]/", "", trim($student_no));
+    
+            $uniID =  $randomNumber . $numbers;
+
+
+
+           
+
+            $add_info_admin = new AdminStudent([
+
+
+                'id' => $uniID,
+                'username' => $student_no,
+                'password' => $bday,
+                'verify_question' => '',
+                'verify_answer' => '',
+    
+                'firstname' => trim(strtoupper($fname)),
+                'middlename' => trim(strtoupper($mname)),
+                'lastname' => trim(strtoupper($lname)),
+                'student_no' => $student_no,
+                'image_file_name' => '',
+                'darkmode' => 1,
+                'disabled' => '0',
+                'email' => $gmail,
+                'region' => $regionText,
+                'city' => $cityText,
+                'province' => $province,
+                'barangay' => $barangayText,
+                'block_lot' => $house,
+                'birth_month' => $month,
+                'birth_year' => $year,
+                'birth_day' => $day,
+                'sex' => $sex,
+                'sivil_status' => $sivil_status,
+                'citizenship' => $citizenship,
+                'age' => $age,
+                'birthplace' => $bdayplace,
+                'ContactNo' => $contactStudent,
+                'father_fname' => $fFirstName,
+                'father_mname' => $fMiddleName,
+                'father_lname' => $fLastName,
+                'mother_fname' => $mFirstName,
+                'mother_mname' => $mMiddleName,
+                'mother_lname' => $mLastName,
+                'm_occupation' => $mOccupation,
+                'f_occupation' => $fOccupation,
+                'emergency_fname' => $eFirstName,
+                'emergency_mname' => $eMiddleName,
+                'emergency_lname' => $eLastName,
+                'emergency_relation' => $eRelation,
+                'emergency_contact' => $econtact,
+                'emergency_address' => $eAddress,
+                'level' => $level,
+    'academic_year' => '2023-2024'
+            ]);
+
+
+
+
+            $add_info_admin->save();
+
+            $add_info_admin = new studentCourse([
+                'ownerID' => $uniID,
+                'course' => $request->input('Course'),
+
+        ]);
+
+
+        $add_info_admin->save();
+
+            $add_info_admin = new sectioning([
+
+            'owner_id' => $uniID,
+            'section' => $request->input('Section'),
+            'academic_year' => '2023-2024',
+            'semester' => '1',
+            'markings' => '',
+
+        ]);
+        $add_info_admin->save();
+      
+            echo 'success';
+
+            echo '<br><br><a href="add_student_beta"><button>Add another</button></a>';
+        }
+
+
+        public function add_student_beta(){
+
+           
+
+
+
+
+            $track = listCourse::all();
+            $Adminsection = Adminsection::all();
+            return view('beta.add_student_beta', compact('Adminsection','track'));
+        }
+
+        public function section_student_beta(){
+
+           
+
+
+
+
+        
+            $Adminsection = Adminsection::all();
+            return view('beta.section_student_beta', compact('Adminsection',));
+        }
+
+
+        public function updating_section_student_beta(Request $request){
+
+           
+        
+          
+         
+    
+    
+     
+            $section = trim($request->input('Section'));
+            $studeno = $request->input('studno');
+    
+         
+    
+            $record_admin = AdminStudent::where('student_no', $studeno)->first();
+           
+            if ($record_admin) {
+                $name = $record_admin->firstname . ' ' . $record_admin->lastname;
+               $id = $record_admin->id;
+
+
+
+                $record_admins = sectioning::where('owner_id', intval($id))->first();
+
+
+                if($record_admins){
+                    $record_admins->section = $section;
+
+        
+                    $record_admins->save();
+                }
+                else{
+
+                    echo " not found";
+                    return;
+                    // $add_info_admin = new sectioning([
+
+                    //     'owner_id' => intval($id),
+                    //     'section' => $section,
+                    //     'academic_year' => '2023-2024',
+                    //     'semester' => '1',
+            
+                    // ]);
+                    // $add_info_admin->save();
+                  
+                    
+                }
+    
+                echo $name . '<br>success';
+    
+                echo '<br><br><a href="section_student_beta"><button>Update another</button></a>';
+    
+    
+            
+        }
+    }
 
 
     

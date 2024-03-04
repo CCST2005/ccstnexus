@@ -10,15 +10,16 @@ use DateTime;
 use App\Models\student_credentials;
 use App\Models\previousEducation;
 use App\Models\listCourse;
+use App\Models\acadYear;
 use Carbon\Carbon;
 use App\Models\credentialsOptionStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+
 class AdminStudentController extends Controller
 
 {
-
 
     private $sharedVariable;
 
@@ -30,15 +31,28 @@ class AdminStudentController extends Controller
 
 
     public function index(){
+        
+        
+
         if (!session()->has('user_logged')) {
             return view('admin.login_page_admin');
         }
         
         
         $all_student = AdminStudent::all();
+        $studentCourse = studentCourse::all();
+
+        $studentCOurse = array();
+
+        foreach($studentCourse as $courseID){
+            $all_studentf = listCourse::where('id', intval($courseID->course))->first();
+            $studentCOurse["'" . intval($courseID->ownerID) . "'"] = $all_studentf->course;
+        }
+
+
 
        
-        return view('admin.student_list', compact('all_student'));
+        return view('admin.student_list', compact('all_student','studentCOurse'));
     }
 
     public function add_student(){
@@ -49,8 +63,805 @@ class AdminStudentController extends Controller
         $listStrand = listCourse::where('id_Dept', '7')->get();
         return view('admin.add_student', compact('list_credentials','citizenships', 'currentYear','listStrand'));
     }
+    public function new_add_student_kiosk(){
+
+
+
+       
+        $currentYear = now()->year;
+        $list_credentials = credentialsOptionStudent::all();
+        $citizenships = $this->citizenships;
+        $listStrand = listCourse::all();
+        return view('kiosk.new_add_student_kiosk', compact('list_credentials','citizenships', 'currentYear','listStrand'));
+    }
+
+    public function adding_student_kiosk (Request $request)
+
+    {
+
+
+        $request->validate([
+            'student_no' => 'required|string|between:5,20|unique:student_account,student_no|regex:/^[0-9-]+$/',
+            'gmail' => 'required|string|between:5,90|unique:student_account,email',
+            'age' => 'required|string|between:2,100',
+            'first_name' => 'required|string|between:2,90',
+            'middle_name' => 'nullable|string|between:2,90',
+            'last_name' => 'required|string|between:2,90',
+            'region-text' => 'required|string|between:2,90',
+            'city-text' => 'required|string|between:2,90',
+            'province-text' => 'required|string|between:2,90',
+            'barangay-text' => 'required|string|between:2,90',
+            'house' => 'required|string|between:2,90',
+            'contact_student' => 'required|string|between:11,11',
+            'mfirst_name' => 'required|string|between:2,90',
+            'mmiddle_name' => 'nullable|string|between:2,90',
+            'mlast_name' => 'required|string|between:2,90',
+            'moccupation' => 'nullable|string|between:2,90',
+            'ffirst_name' => 'required|string|between:2,90',
+            'fmiddle_name' => 'nullable|string|between:2,90',
+            'flast_name' => 'required|string|between:2,90',
+            'foccupation' => 'nullable|string|between:2,90',
+            'efirst_name' => 'required|string|between:2,90',
+            'emiddle_name' => 'nullable|string|between:2,90',
+            'elast_name' => 'required|string|between:2,90',
+            'erelation' => 'required|string|between:2,90',
+            'eaddress' => 'required|string|between:2,90',
+            'bdayplace' => 'required|string|between:2,90',
+            'citizenship' => 'string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sex' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sivil_status' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
+
+            'elem' => 'required|string|between:2,90',
+            'highschool' => 'nullable|string|between:2,90',
+            'college' => 'nullable|string|between:2,90',
+            
+            'elemyr' => 'required|between:2,90',
+            
+           
+            
+
+
+            'collegeyr' => [
+                Rule::requiredIf(!empty(trim($request->input('college')))),
+               
+                
+                
+
+            ],
+
+            'previousCourse' => [
+                Rule::requiredIf(!empty(trim($request->input('college')))),
+          
+             
+
+            ],
+
+            'highschoolyr' => [
+                Rule::requiredIf(!empty(trim($request->input('highschool')))),
+              
+               
+                
+
+            ]
+        ]);
+     
+        
+    
+
+        // Trim the variables
+        $age = trim($request->input('age'));
+        $studentNo = trim($request->input('student_no'));
+        $gmail = trim($request->input('gmail'));
+        $password = trim($request->input('password'));
+        $firstName = trim($request->input('first_name'));
+        $middleName = trim($request->input('middle_name'));
+        $lastName = trim($request->input('last_name'));
+        $bdayplace = trim($request->input('bdayplace'));
+        $bday = trim($request->input('bday'));
+        $regionText = trim($request->input('region-text'));
+        $cityText = trim($request->input('city-text'));
+        $barangayText = trim($request->input('barangay-text'));
+        $house = trim($request->input('house'));
+        $contactStudent = trim($request->input('contact_student'));
+        $mFirstName = trim($request->input('mfirst_name'));
+        $mMiddleName = trim($request->input('mmiddle_name'));
+        $mLastName = trim($request->input('mlast_name'));
+        $mOccupation = trim($request->input('moccupation'));
+        $fFirstName = trim($request->input('ffirst_name'));
+        $fMiddleName = trim($request->input('fmiddle_name'));
+        $fLastName = trim($request->input('flast_name'));
+        $fOccupation = trim($request->input('foccupation'));
+        $eFirstName = trim($request->input('efirst_name'));
+        $eMiddleName = trim($request->input('emiddle_name'));
+        $eLastName = trim($request->input('elast_name'));
+        $eRelation = trim($request->input('erelation'));
+        $eAddress = trim($request->input('eaddress'));
+        $province = trim($request->input('province-text'));
+        $sivil_status = trim($request->input('sivil_status'));
+        $citizenship = trim($request->input('citizenship'));
+        $sex = trim($request->input('sex'));
+        $econtact = trim($request->input('econtact'));
+        $level = trim($request->input('level'));
+        $date = Carbon::parse($bday);
+
+
+        $firstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $firstName))))) ;
+        $middleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $middleName))))) ;
+        $lastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $lastName))))) ;
+
+        $bdayplace = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $bdayplace))))) ;
+        $house = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $house))))) ;
+
+
+        $mFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mFirstName))))) ;
+
+        $mMiddleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mMiddleName))))) ;
+
+        $mLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mLastName))))) ;
+        $mOccupation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mOccupation))))) ;
+        $fFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fFirstName))))) ;
+        $fMiddleName =trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fMiddleName))))) ;
+        $fLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fLastName))))) ;
+        $fOccupation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fOccupation))))) ;
+        $eFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eFirstName))))) ;
+        $eMiddleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eMiddleName))))) ;
+        $eLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eLastName))))) ;
+        $eRelation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eRelation))))) ;
+        $eAddress = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eAddress))))) ;
+
+        
+        $year = $date->year;
+        $month = $date->month;
+        $day = $date->day;
+
+        $PasswordForNew = $month . '-' . $day  . '-' . $year;
+
+        if(trim($request->input('college')) == ""){
+
+            $collegeyr = '';
+            $previousCourse = '';
+            $college = '';
+
+        }
+        else{
+            $collegeyr = trim($request->input('collegeyr'));
+            $previousCourse = trim($request->input('previousCourse'));
+            $college = trim($request->input('college'));
+        }
+
+        if(trim($request->input('highschool')) == ""){
+
+            $highschool = '';
+            $highschoolyr = '';
+
+        }
+        else{
+            $highschool = trim($request->input('highschool'));
+            $highschoolyr = trim($request->input('highschoolyr'));
+        }
+
+        
+        
+    
+
+        $randomNumber = random_int(1, 100);
+
+        $numbers = preg_replace("/[^0-9]/", "", $request->input('student_no'));
+
+        $uniID =  $randomNumber . $numbers;
+        $acads = acadYear::where('current', '1')->first();
+        $acads = $acads->year;
+    
+        $add_info_admin = new AdminStudent([
+            'id' => $uniID,
+            'username' => $studentNo,
+            'password' => Hash::make($PasswordForNew),
+            'verify_question' => '',
+            'verify_answer' => '',
+
+            'firstname' => $firstName,
+            'middlename' => $middleName,
+            'lastname' => $lastName,
+            'student_no' => $studentNo,
+            'image_file_name' => '',
+            'darkmode' => 1,
+            'disabled' => '0',
+            'email' => $gmail,
+            'region' => $regionText,
+            'city' => $cityText,
+            'province' => $province,
+            'barangay' => $barangayText,
+            'block_lot' => $house,
+            'birth_month' => $month,
+            'birth_year' => $year,
+            'birth_day' => $day,
+            'sex' => $sex,
+            'sivil_status' => $sivil_status,
+            'citizenship' => $citizenship,
+            'age' => $age,
+            'birthplace' => $bdayplace,
+            'ContactNo' => $contactStudent,
+            'father_fname' => $fFirstName,
+            'father_mname' => $fMiddleName,
+            'father_lname' => $fLastName,
+            'mother_fname' => $mFirstName,
+            'mother_mname' => $mMiddleName,
+            'mother_lname' => $mLastName,
+            'm_occupation' => $mOccupation,
+            'f_occupation' => $fOccupation,
+            'emergency_fname' => $eFirstName,
+            'emergency_mname' => $eMiddleName,
+            'emergency_lname' => $eLastName,
+            'emergency_relation' => $eRelation,
+            'emergency_contact' => $econtact,
+            'emergency_address' => $eAddress,
+            'level' => $level,
+            'academic_year' => $acads,
+
+        ]);
+        $add_info_admin->save();
+
+        
+
+        $elem = trim($request->input('elem'));
+       
+        
+
+        $elemyr = trim($request->input('elemyr'));
+
+        $add_info_admin = new previousEducation([
+            'id' => $uniID,
+            'elementary' => $elem,
+    
+            'highschool' => $highschool,
+            'college' => $college,
+
+            'elementaryYr' => $elemyr,
+            'highschoolYr' => $highschoolyr,
+            'collegeYr' => $collegeyr,
+            'collegeCourse' => $previousCourse,
+ 
+        ]);
+
+        $add_info_admin->save();
+
+
+
+
+
+        $credentials = $request->input('credentials');
+        // if (empty($credentials)){
+        //     return back();
+        // }
+
+
+        // if (!empty($credentials)) {
+        //     foreach ($credentials as $value) {
+
+        //         $add_info_admin = new student_credentials([
+
+        //             'owner_id' => $uniID,
+        //             'credentials_id' => $value,
+                    
+        //         ]);
+        
+        //         $add_info_admin->save();
+                
+        //     }
+        // }
+
+        $strand = trim($request->input('strand'));
+        
+            $add_info_admins = new studentCourse([
+
+                'ownerID' => $uniID,
+                'course' => $strand,
+                
+            ]);
+            $add_info_admins->save();
+           
+        
+        
+
+
+       
+
+            $success = [
+
+                'icon' => 'success',
+                'title' => 'Updated successfully!',
+                'text' => 'You may proceed to STEP 4 (Scheduling and Sectioning).',
+            ];
+    
+           
+         
+            return redirect('/kiosk')->with('success', $success);
+
+
+
+
+
+    }
+
+
+    public function kiosk_updating_student (Request $request, $id)
+
+    {
+       
+        
+
+        $record_admin = AdminStudent::where('id', $id)->first();
+        
+        if($record_admin->email != trim($request->input('gmail'))) {
+            $validates = 'required|string|between:5,90|unique:student_account,email';
+        }
+        else{
+            $validates = "nullable";
+        }
+
+        if($record_admin->student_no != trim($request->input('student_no'))) {
+            $validating = 'required|string|between:5,20|unique:student_account,student_no|regex:/^[0-9-]+$/';
+        }
+        else{
+            $validating = "nullable";
+        }
+
+        
+
+        $request->validate([
+            'student_no' => $validating,
+            'gmail' => $validates,
+
+        
+            'age' => 'required|string|between:2,100',
+            'first_name' => 'required|string|between:2,90',
+            'middle_name' => 'nullable|string|between:2,90',
+            'last_name' => 'required|string|between:2,90',
+            'region-text' => 'required|string|between:2,90',
+            'city-text' => 'required|string|between:2,90',
+            'province-text' => 'required|string|between:2,90',
+            'barangay-text' => 'required|string|between:2,90',
+            'house' => 'required|string|between:2,90',
+            'contact_student' => 'required|string|between:11,11',
+            'mfirst_name' => 'required|string|between:2,90',
+            'mmiddle_name' => 'nullable|string|between:2,90',
+            'mlast_name' => 'required|string|between:2,90',
+            'moccupation' => 'nullable|string|between:2,200',
+            'ffirst_name' => 'required|string|between:2,90',
+            'fmiddle_name' => 'nullable|string|between:2,90',
+            'flast_name' => 'required|string|between:2,90',
+            'foccupation' => 'nullable|string|between:2,200',
+            'efirst_name' => 'required|string|between:2,90',
+            'emiddle_name' => 'nullable|string|between:2,90',
+            'elast_name' => 'required|string|between:2,90',
+            'erelation' => 'required|string|between:2,90',
+            'eaddress' => 'required|string|between:2,200',
+            'bdayplace' => 'required|string|between:2,90',
+            'citizenship' => 'string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sex' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sivil_status' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
+
+            'elem' => 'required|string|between:2,90',
+            'highschool' => 'nullable|string|between:2,90',
+            'college' => 'nullable|string|between:2,90',
+            
+            'elemyr' => 'required|between:2,90',
+            
+           
+            
+
+
+            'collegeyr' => [
+                Rule::requiredIf(!empty(trim($request->input('college')))),
+               
+                
+                
+
+            ],
+
+            'previousCourse' => [
+                Rule::requiredIf(!empty(trim($request->input('college')))),
+          
+             
+
+            ],
+
+            'highschoolyr' => [
+                Rule::requiredIf(!empty(trim($request->input('highschool')))),
+              
+               
+                
+
+            ]
+        ]);
+
+        
+
+
+        // Trim the variables
+        $age = trim($request->input('age'));
+        $studentNo = trim($request->input('student_no'));
+        $gmail = trim($request->input('gmail'));
+        
+        $firstName = trim($request->input('first_name'));
+        $middleName = trim($request->input('middle_name'));
+        $lastName = trim($request->input('last_name'));
+        $bdayplace = trim($request->input('bdayplace'));
+        $bday = trim($request->input('bday'));
+        $regionText = trim($request->input('region-text'));
+        $cityText = trim($request->input('city-text'));
+        $barangayText = trim($request->input('barangay-text'));
+        $house = trim($request->input('house'));
+        $contactStudent = trim($request->input('contact_student'));
+        $mFirstName = trim($request->input('mfirst_name'));
+        $mMiddleName = trim($request->input('mmiddle_name'));
+        $mLastName = trim($request->input('mlast_name'));
+        $mOccupation = trim($request->input('moccupation'));
+        $fFirstName = trim($request->input('ffirst_name'));
+        $fMiddleName = trim($request->input('fmiddle_name'));
+        $fLastName = trim($request->input('flast_name'));
+        $fOccupation = trim($request->input('foccupation'));
+        $eFirstName = trim($request->input('efirst_name'));
+        $eMiddleName = trim($request->input('emiddle_name'));
+        $eLastName = trim($request->input('elast_name'));
+        $eRelation = trim($request->input('erelation'));
+        $eAddress = trim($request->input('eaddress'));
+        $province = trim($request->input('province-text'));
+        $sivil_status = trim($request->input('sivil_status'));
+        $citizenship = trim($request->input('citizenship'));
+        $sex = trim($request->input('sex'));
+        $econtact = trim($request->input('econtact'));
+        $level = trim($request->input('level'));
+        $date = Carbon::parse($bday);
+
+
+        $firstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $firstName))))) ;
+        $middleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $middleName))))) ;
+        $lastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $lastName))))) ;
+
+        $bdayplace = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $bdayplace))))) ;
+        $house = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $house))))) ;
+
+
+        $mFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mFirstName))))) ;
+
+        $mMiddleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mMiddleName))))) ;
+
+        $mLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mLastName))))) ;
+        $mOccupation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $mOccupation))))) ;
+        $fFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fFirstName))))) ;
+        $fMiddleName =trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fMiddleName))))) ;
+        $fLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fLastName))))) ;
+        $fOccupation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $fOccupation))))) ;
+        $eFirstName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eFirstName))))) ;
+        $eMiddleName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eMiddleName))))) ;
+        $eLastName = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eLastName))))) ;
+        $eRelation = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eRelation))))) ;
+        $eAddress = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $eAddress))))) ;
+
+        $year = $date->year;
+        $month = $date->month;
+        $day = $date->day;
+
+
+        if(trim($request->input('college')) == ""){
+
+            $collegeyr = '';
+            $previousCourse = '';
+            $college = '';
+
+        }
+        else{
+            $collegeyr = trim($request->input('collegeyr'));
+            $previousCourse = trim($request->input('previousCourse'));
+            $college = trim($request->input('college'));
+        }
+
+        if(trim($request->input('highschool')) == ""){
+
+            $highschool = '';
+            $highschoolyr = '';
+
+        }
+        else{
+            $highschool = trim($request->input('highschool'));
+            $highschoolyr = trim($request->input('highschoolyr'));
+        }
+
+        
+        
+    
+
+        $randomNumber = random_int(1, 100);
+
+        $numbers = preg_replace("/[^0-9]/", "", $request->input('student_no'));
+
+
+
+
+        $record_admin = AdminStudent::where('id', $id)->first();
+
+
+
+
+   
+
+        $record_admin->firstname = $firstName;
+        $record_admin->middlename = $middleName;
+        $record_admin->lastname = $lastName;
+        $record_admin->student_no = $studentNo;
+    
+        
+        $record_admin->email = $gmail;
+        $record_admin->region = $regionText;
+        $record_admin->city = $cityText;
+        $record_admin->province = $province;
+        $record_admin->barangay = $barangayText;
+        $record_admin->block_lot = $house;
+        $record_admin->birth_month = $month;
+        $record_admin->birth_year = $year;
+        $record_admin->birth_day = $day;
+        $record_admin->sex = $sex;
+        $record_admin->sivil_status = $sivil_status;
+        $record_admin->citizenship = $citizenship;
+        $record_admin->age = $age;
+        $record_admin->birthplace = $bdayplace;
+        $record_admin->ContactNo = $contactStudent;
+        $record_admin->father_fname = $fFirstName;
+        $record_admin->father_mname = $fMiddleName;
+        $record_admin->father_lname = $fLastName;
+        $record_admin->mother_fname = $mFirstName;
+        $record_admin->mother_mname = $mMiddleName;
+        $record_admin->mother_lname = $mLastName;
+        $record_admin->m_occupation = $mOccupation;
+        $record_admin->f_occupation = $fOccupation;
+        $record_admin->emergency_fname = $eFirstName;
+        $record_admin->emergency_mname = $eMiddleName;
+        $record_admin->emergency_lname = $eLastName;
+        $record_admin->emergency_relation = $eRelation;
+        $record_admin->emergency_contact = $econtact;
+        $record_admin->emergency_address = $eAddress;
+        
+
+        $record_admin->save();
+
+        
+
+        $elem = trim($request->input('elem'));
+       
+        
+
+        $elemyr = trim($request->input('elemyr'));
+
+
+
+        $record_admin = previousEducation::where('id', $id)->first();
+        if ($record_admin !== null) {
+      
+
+        $record_admin->elementary = $elem;
+    
+        $record_admin->highschool = $highschool;
+        $record_admin->college = $college;
+
+        $record_admin->elementaryYr = $elemyr;
+        $record_admin->highschoolYr = $highschoolyr;
+        $record_admin->collegeYr = $collegeyr;
+        $record_admin->collegeCourse = $previousCourse;
+ 
+     
+
+        $record_admin->save();
+
+
+        }
+        else{
+            
+          
+            
+            $add_info_admin = new previousEducation([
+                'id' => $id,
+                'elementary' => $elem,
+                'highschool' => $highschool,
+                'college' => $college,
+                'elementaryYr' => $elemyr,
+    
+                'highschoolYr' => $highschoolyr,
+                'collegeYr' => $collegeyr,
+                'collegeCourse' => $econtact,
+          
+    
+            ]);
+            $add_info_admin->save();
+         
+    
+        }
+
+
+
+        // $strand = trim($request->input('strand'));
+        // if ($level == 'College' || $level == 'college') {
+
+        //     $record_admin = studentCourse::where('ownerID', intval($id))->first();
+
+        // if ($record_admin) {
+      
+        //     $record_admin->course = $strand;
+          
+
+        //     $record_admin->save();
+            
+        // }
+          
+           
+        // }
+
+
+        // //DELETETHISWHEN DONE
+        // $success = [
+
+        //     'icon' => 'success',
+        //     'title' => 'Updated successfully!',
+        // ];
+
+       
+     
+    
+        
+        // return back()->with('success', $success);
+
+
+        // $credentials = $request->input('credentials');
+        // if (empty($credentials)){
+        //     return back();
+        // }
+
+        
+
+        // if (!empty($credentials)) {
+        //     student_credentials::where('owner_id', $id)->delete();
+
+        //     foreach ($credentials as $value) {
+
+        //         $add_info_admin = new student_credentials([
+
+        //             'owner_id' => $id,
+        //             'credentials_id' => $value,
+                    
+        //         ]);
+        
+        //         $add_info_admin->save();
+                
+        //     }
+        // }
+        
+       
+        // else{
+        //     studentStrand::where('ownerID', $id)->delete();
+        //     $add_info_admins = new studentStrand([
+
+        //         'ownerID' => $id,
+        //         'strand' => $strand,
+                
+        //     ]);
+        //     $add_info_admins->save();
+
+        // }
+
+
+       
+
+        $success = [
+
+            'icon' => 'success',
+            'title' => 'Updated successfully!',
+            'text' => 'You may proceed to STEP 4 (Scheduling and Sectioning).',
+        ];
+
+       
+     
+        return redirect('/kiosk')->with('success', $success);
+        
+        
+
+
+
+
+
+
+    }
+
+
+    public function searched_student_kiosk(Request $request){
+        $finding_user_acc = AdminStudent::where('student_no',  $request->input('student_no'))->first();
+        if(!$finding_user_acc){
+            $success = [
+                'icon' => 'error', 
+                'text' => 'Please try again.',
+                'title' => 'Student not found',
+            ];
+            return back()->with('success', $success);
+        }
+        
+        $id = $finding_user_acc->id;
+        $listStrand = studentCourse::where('ownerID',intval($finding_user_acc->id))->first();
+        $studentlistcourse = listCourse::where('id', $listStrand->course)->first();
+        $currentYear = now()->year;
+        $list_credentials = credentialsOptionStudent::all();
+        $citizenships = $this->citizenships;
+        $listStrand = listCourse::all();
+        $studentRealCOurse = $studentlistcourse->course;
+        $finding_user_acc = AdminStudent::where('id', $id)->first();
+
+        $credentialsStuds = student_credentials::where('owner_id', $id)->get();
+        $allcreds = array();
+        foreach($credentialsStuds as $cred){
+            $credents = credentialsOptionStudent::where('id', $cred->credentials_id)->first();
+
+            array_push($allcreds, $credents->credentials);
+        }
+        $credentialsStuds = $allcreds;
+
+
+        $level = $finding_user_acc->level;
+        if($finding_user_acc->birth_year != null){
+            $birhtdate = new DateTime($finding_user_acc->birth_year . '-' . $finding_user_acc->birth_month . '-' . $finding_user_acc->birth_day);
+            $formattedDate = $birhtdate->format("Y-m-d");
+        }
+        else{
+            $formattedDate = '';
+            $birhtdate = '';
+        }
+        
+
+        if($level == '11' || $level == '12'){
+            $course = studentStrand::where('ownerID', intval($id))->first();
+            $course = $course->strand;
+        }
+        else{
+            $course = studentCourse::where('ownerID', intval($id))->first();
+            $course = $course->course;
+        
+        }
+
+        $previous = previousEducation::where('id', $id)->first();
+       
+        
+
+       
+        return view('kiosk.searched_student_kiosk', compact('studentRealCOurse','previous','credentialsStuds', 'course','level', 'finding_user_acc','list_credentials','citizenships', 'currentYear','listStrand', 'formattedDate'));
+    }
+
+    public function update_student_kiosk(){
+       
+       
+        return view('kiosk.update_student_kiosk');
+    }
+
+
     public function add_student_kiosk(){
        
+        // $students = AdminStudent::all();
+
+        // foreach($students as $ids){
+        //     $id = $ids->id;
+
+        //     $studentsf = AdminStudent::where('id', intval($id))->first();
+        //     $firstname = $studentsf->firstname;
+        //     $middlename = $studentsf->middlename;
+        //     $lastname = $studentsf->lastname;
+
+        //     $studentsf->firstname = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $firstname))))) ;
+        //     $studentsf->middlename = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $middlename))))) ;
+        //     $studentsf->lastname = trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $lastname))))) ;
+      
+
+        //     $studentsf->save();
+
+
+        // }
+
+
         $currentYear = now()->year;
         $list_credentials = credentialsOptionStudent::all();
         $citizenships = $this->citizenships;
@@ -76,17 +887,26 @@ class AdminStudentController extends Controller
         }
         $credentialsStuds = $allcreds;
 
+
         $level = $finding_user_acc->level;
-        $birhtdate = new DateTime($finding_user_acc->birth_year . '-' . $finding_user_acc->birth_month . '-' . $finding_user_acc->birth_day);
-        $formattedDate = $birhtdate->format("Y-m-d");
+        if($finding_user_acc->birth_year != null){
+            $birhtdate = new DateTime($finding_user_acc->birth_year . '-' . $finding_user_acc->birth_month . '-' . $finding_user_acc->birth_day);
+            $formattedDate = $birhtdate->format("Y-m-d");
+        }
+        else{
+            $formattedDate = '';
+            $birhtdate = '';
+        }
+        
 
         if($level == '11' || $level == '12'){
-            $course = studentStrand::where('ownerID', $id)->first();
+            $course = studentStrand::where('ownerID', intval($id))->first();
             $course = $course->strand;
         }
         else{
-            $course = studentCourse::where('ownerID', $id)->first();
+            $course = studentCourse::where('ownerID', intval($id))->first();
             $course = $course->course;
+        
         }
 
         $previous = previousEducation::where('id', $id)->first();
@@ -105,16 +925,18 @@ class AdminStudentController extends Controller
 
         $existingemail = AdminStudent::where('email', $request->input('datacheckgmail'))->first();
 
-    
-
+        if($existingEmployee)
+        {
+            $naming = $existingEmployee->firstname . " " . $existingEmployee->lastname;
+        }
         if ($existingEmployee) {
-            return response()->json(['employeeNo' => true, 'email' => false]);
+            return response()->json(['employeeNo' => true, 'email' => false, 'name' => $naming]);
         } 
         elseif ($existingemail){
-            return response()->json([ 'employeeNo' => false, 'email' => true]);
+            return response()->json([ 'employeeNo' => false, 'email' => true, 'name' => '']);
         }
         else {
-            return response()->json(['employeeNo' => false, 'email' => false]);
+            return response()->json(['employeeNo' => false, 'email' => false, 'name' => '']);
         }
     }
 
@@ -124,7 +946,7 @@ class AdminStudentController extends Controller
         $request->validate([
             'student_no' => 'required|string|between:5,20|unique:student_account,student_no|regex:/^[0-9-]+$/',
             'gmail' => 'required|string|between:5,30|email|unique:student_account,email',
-            'age' => 'required|int|between:2,30',
+            'age' => 'required|int|between:2,100',
             'first_name' => 'required|string|between:2,30',
             'middle_name' => 'nullable|string|between:2,30',
             'last_name' => 'required|string|between:2,30',
@@ -228,7 +1050,7 @@ class AdminStudentController extends Controller
         $year = $date->year;
         $month = $date->month;
         $day = $date->day;
-
+        $PasswordForNew = $month . '-' . $day  . '-' . $year;
 
         if(trim($request->input('college')) == ""){
 
@@ -267,7 +1089,7 @@ class AdminStudentController extends Controller
         $add_info_admin = new AdminStudent([
             'id' => $uniID,
             'username' => $studentNo,
-            'password' => $bday,
+            'password' => Hash::make($PasswordForNew),
             'verify_question' => '',
             'verify_answer' => '',
 
@@ -396,7 +1218,9 @@ class AdminStudentController extends Controller
     }
 
     public function updating_student (Request $request, $id)
+
     {
+
      
         if ($request->isMethod('get')) {
             return redirect()->route('admin.index');
@@ -417,47 +1241,69 @@ class AdminStudentController extends Controller
             $validating = "nullable";
         }
 
+        
 
-
+        $request->merge([
+            'age' => $request->input('age') ?? 100,
+            'region-text' => $request->input('region-text') ?? 'EmptyN/A',
+            'city-text' => $request->input('city-text') ?? 'EmptyN/A',
+            'province-text' => $request->input('province-text') ?? 'EmptyN/A',
+            'barangay-text' => $request->input('barangay-text') ?? 'EmptyN/A',
+            'house' => $request->input('house') ?? 'EmptyN/A',
+            'contact_student' => $request->input('contact_student') ?? 'EmptyN/A',
+            'mfirst_name' => $request->input('mfirst_name') ?? 'EmptyN/A',
+            'mlast_name' => $request->input('mlast_name') ?? 'EmptyN/A',
+            'ffirst_name' => $request->input('ffirst_name') ?? 'EmptyN/A',
+            'flast_name' => $request->input('flast_name') ?? 'EmptyN/A',
+            'efirst_name' => $request->input('efirst_name') ?? 'EmptyN/A',
+            'elast_name' => $request->input('elast_name') ?? 'EmptyN/A',
+            'erelation' => $request->input('erelation') ?? 'EmptyN/A',
+            'eaddress' => $request->input('eaddress') ?? 'EmptyN/A',
+            'bdayplace' => $request->input('bdayplace') ?? 'EmptyN/A',
+            // 'citizenship' => $request->input('citizenship') ?? 'EmptyN/A',
+            'elem' => $request->input('elem') ?? 'EmptyN/A',
+            'elemyr' => $request->input('elemyr') ?? 'EmptyN/A',
+        ]);
 
         $request->validate([
             'student_no' => $validating,
             'gmail' => $validates,
 
         
-            'age' => 'required|int|between:2,30',
-            'first_name' => 'required|string|between:2,30',
-            'middle_name' => 'nullable|string|between:2,30',
-            'last_name' => 'required|string|between:2,30',
-            'region-text' => 'required|string|between:2,30',
-            'city-text' => 'required|string|between:2,30',
-            'province-text' => 'required|string|between:2,30',
-            'barangay-text' => 'required|string|between:2,30',
-            'house' => 'required|string|between:2,30',
-            'contact_student' => 'required|string|between:5,20',
-            'mfirst_name' => 'required|string|between:2,30',
-            'mmiddle_name' => 'nullable|string|between:2,30',
-            'mlast_name' => 'required|string|between:2,30',
-            'moccupation' => 'nullable|string|between:2,30',
-            'ffirst_name' => 'required|string|between:2,30',
-            'fmiddle_name' => 'nullable|string|between:2,30',
-            'flast_name' => 'required|string|between:2,30',
-            'foccupation' => 'nullable|string|between:2,30',
-            'efirst_name' => 'required|string|between:2,30',
-            'emiddle_name' => 'nullable|string|between:2,30',
-            'elast_name' => 'required|string|between:2,30',
-            'erelation' => 'required|string|between:2,30',
-            'eaddress' => 'required|string|between:2,30',
-            'bdayplace' => 'required|string|between:2,30',
-            'citizenship' => 'required|string|between:2,30|regex:/^[A-Za-z\s]+$/',
-            'sex' => 'required|string|between:2,30|regex:/^[A-Za-z\s]+$/',
-            'sivil_status' => 'required|string|between:2,30|regex:/^[A-Za-z\s]+$/',
+            'age' => 'required|string|between:2,100',
+            'first_name' => 'required|string|between:2,90',
+            'middle_name' => 'nullable|string|between:2,90',
+            'last_name' => 'required|string|between:2,90',
+            'region-text' => 'required|string|between:2,90',
+            'city-text' => 'required|string|between:2,90',
+            'province-text' => 'required|string|between:2,90',
+            'barangay-text' => 'required|string|between:2,90',
+            'house' => 'required|string|between:2,90',
+            'contact_student' => 'required|string',
+            // 'contact_student' => 'required|string|between:11,11',
+            'mfirst_name' => 'required|string|between:2,90',
+            'mmiddle_name' => 'nullable|string|between:2,90',
+            'mlast_name' => 'required|string|between:2,90',
+            'moccupation' => 'nullable|string|between:2,200',
+            'ffirst_name' => 'required|string|between:2,90',
+            'fmiddle_name' => 'nullable|string|between:2,90',
+            'flast_name' => 'required|string|between:2,90',
+            'foccupation' => 'nullable|string|between:2,200',
+            'efirst_name' => 'required|string|between:2,90',
+            'emiddle_name' => 'nullable|string|between:2,90',
+            'elast_name' => 'required|string|between:2,90',
+            'erelation' => 'required|string|between:2,90',
+            'eaddress' => 'required|string|between:2,200',
+            'bdayplace' => 'required|string|between:2,90',
+            'citizenship' => 'string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sex' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
+            'sivil_status' => 'required|string|between:2,90|regex:/^[A-Za-z\s]+$/',
 
-            'elem' => 'required|string|between:2,30',
-            'highschool' => 'nullable|string|between:2,30',
-            'college' => 'nullable|string|between:2,30',
+            'elem' => 'required|string|between:2,90',
+            'highschool' => 'nullable|string|between:2,90',
+            'college' => 'nullable|string|between:2,90',
             
-            'elemyr' => 'required|between:2,30',
+            'elemyr' => 'required|between:2,90',
             
            
             
@@ -489,7 +1335,7 @@ class AdminStudentController extends Controller
 
         
 
-
+        
         // Trim the variables
         $age = trim($request->input('age'));
         $studentNo = trim($request->input('student_no'));
@@ -572,6 +1418,9 @@ class AdminStudentController extends Controller
         $record_admin->username = $studentNo;
 
    
+        if(trim($request->input('password')) != ""){
+            $record_admin->password = Hash::make(trim($request->input('password')));
+        }
 
         $record_admin->firstname = $firstName;
         $record_admin->middlename = $middleName;
@@ -623,7 +1472,7 @@ class AdminStudentController extends Controller
 
 
         $record_admin = previousEducation::where('id', $id)->first();
-
+        if ($record_admin !== null) {
       
 
         $record_admin->elementary = $elem;
@@ -641,7 +1490,40 @@ class AdminStudentController extends Controller
         $record_admin->save();
 
 
+        }
 
+
+
+        $strand = trim($request->input('strand'));
+        if ($level == 'College' || $level == 'college') {
+
+            $record_admin = studentCourse::where('ownerID', intval($id))->first();
+
+        if ($record_admin) {
+      
+            $record_admin->course = $strand;
+          
+
+            $record_admin->save();
+            
+        }
+          
+           
+        }
+
+
+        //DELETETHISWHEN DONE
+        $success = [
+
+            'icon' => 'success',
+            'title' => 'Updated successfully!',
+        ];
+
+       
+     
+    
+        
+        return back()->with('success', $success);
 
 
         $credentials = $request->input('credentials');
@@ -667,45 +1549,34 @@ class AdminStudentController extends Controller
                 
             }
         }
+        
+       
+        // else{
+        //     studentStrand::where('ownerID', $id)->delete();
+        //     $add_info_admins = new studentStrand([
 
-        $strand = trim($request->input('strand'));
-        if ($level == 'College') {
-            studentCourse::where('ownerID', $id)->delete();
-            $add_info_admins = new studentCourse([
-
-                'ownerID' => $id,
-                'course' => $strand,
+        //         'ownerID' => $id,
+        //         'strand' => $strand,
                 
-            ]);
-            $add_info_admins->save();
-           
-        }
-        else{
-            studentStrand::where('ownerID', $id)->delete();
-            $add_info_admins = new studentStrand([
+        //     ]);
+        //     $add_info_admins->save();
 
-                'ownerID' => $id,
-                'strand' => $strand,
-                
-            ]);
-            $add_info_admins->save();
-
-        }
+        // }
 
 
        
 
-        $success = [
+        // $success = [
 
-            'icon' => 'success',
-            'title' => 'Updated successfully!',
-        ];
+        //     'icon' => 'success',
+        //     'title' => 'Updated successfully!',
+        // ];
 
        
      
     
         
-        return back()->with('success', $success);
+        // return back()->with('success', $success);
 
 
 
@@ -955,5 +1826,7 @@ class AdminStudentController extends Controller
  
  
     }
+
+
 
 }

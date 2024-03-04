@@ -12,6 +12,6 @@ class AdminSection extends Model
     protected $table = 'sections';
 
     protected $fillable = [
-        'id', 'track', 'section', 'department', 'desc', 'created_at', 'updated_at', 'adviser', 'imageName'
+        'id', 'track', 'section', 'department', 'desc', 'created_at', 'updated_at', 'adviser', 'imageName', 'semester', 'year'
     ];
 }

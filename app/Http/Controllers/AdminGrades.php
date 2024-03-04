@@ -16,59 +16,156 @@ use App\Models\student_list_w_sub_teacher;
 use App\Models\acadYear;
 class AdminGrades extends Controller
 {
-    public function grade_reports(Request $request, $year){
-        
-        
-        $students = AdminStudent::all();
-        $schools = array();
-        
-        foreach($students as $schoolYear){
-            if(!in_array($schoolYear->academic_year, $schools)){
-                array_push($schools, $schoolYear->academic_year);
-            }
-        }
-
-
-
-        if(in_array($year, $schools)){
-            $students = AdminStudent::where('academic_year', $year)->get();
-        }
-        else{
-            $students = AdminStudent::all();
-        }
-
-        $course = array();
-        foreach($students as $id){
-
-            $cur = studentCourse::where('ownerID', $id->id)->first();
-            $temp = listCourse::where('id', $cur->course)->first();
-            $course[$id->id] = $temp->course;
-        }
-
-
-        $sectioning = array();
-        foreach($students as $id){
-
-            $cur = sectioning::where('owner_id', $id->id)->exists();
-
-
-            if($cur){
-                $cur = sectioning::where('owner_id', $id->id)->first();
-                $temp = AdminSection::where('id', $cur->section)->first();
-                $sectioning[$id->id] = $temp->section;
-            }
-            else{
-                $sectioning[$id->id] = 'N/A';
+    public function grade_reports(Request $request){
+        if($request->input('sy') != '' && $request->input('course') != '' && $request->input('section') != ''){
+            $year = $request->input('sy');
+            $sem = $request->input('sem');
+            $course = $request->input('course');
+            $section = $request->input('section');
+            $semID = $request->input('sem');
+            $courseID = $course;
+            $yearID = $year;
+            $sectionID = $section;
+            $sectionName = AdminSection::where('id', $section)->first();
+            if($sectionName){
+                $sectionName = $sectionName->section;
             }
            
+
+            $courseName =  listCourse::where('id', $course)->first();
+            if($courseName){
+                $courseName = $courseName->course;
+            }
+            
+
+            $yearName = $year;
+           
+            $teacher_subb = teacher_sub::where('academic_year', $year)->where('course_id', $courseID)->where('section_id', intval($sectionID))->where('semester', intval($sem))->get();
+
         }
+        else{
+            $year = '';
+            $course = '';
+            $section = '';
+            $sectionID = '';
+            $courseID = '';
+            $yearID = '';
+            $sectionName = '';
+            $semID = '';
+            $courseName = '';
+            $yearName  = '';
+            $teacher_subb = array();
+            $sem = '';
+        }
+            
+            
+            
+            
+
+   
+    
+
+
+             $teacher_sub = teacher_sub::all();
+             $dropdownyearing = array();
+             foreach($teacher_sub as $yearing){
+                $dropdownyearing[$yearing->academic_year] = $yearing->academic_year;
+             }
+
+
+             $listCourse = listCourse::all();
+             $dropdownlistCourse = array();
+             foreach($listCourse as $listCourses){
+                $dropdownlistCourse[$listCourses->course] = [$listCourses->id, $listCourses->course];
+             }
+
+
+             $AdminSection = AdminSection::where('semester', 1)->get();
+             $dropdownlistAdminSection1stSem = array();
+             foreach($AdminSection as $lAdminSections){
+                $dropdownlistAdminSection1stSem[] = [$lAdminSections->track, $lAdminSections->section, $lAdminSections->id];
+             }
 
 
 
-        return view('admin.grade_reports', compact('students', 'schools', 'course', 'sectioning'));
+             $AdminSection = AdminSection::where('semester', 2)->get();
+             $dropdownlistAdminSection2ndSem = array();
+             foreach($AdminSection as $lAdminSections){
+                $dropdownlistAdminSection2ndSem[] = [$lAdminSections->track, $lAdminSections->section, $lAdminSections->id];
+             }
+             
+             
+            $getStudents = array();
+            if($teacher_subb){
+                foreach($teacher_subb as $students){
+                    $searching = student_list_w_sub_teacher::where('owner_id', $students->id)->get(); 
+                    if($searching){
+
+                        foreach($searching as $studentsget){
+
+                            $getStudents[$studentsget->stud_id] = $studentsget->stud_id;
+
+                        }
+                        
+                    }
+                }
+            }
+
+           
+
+
+
+            $studentsf = AdminStudent::all();
+            $students = array();
+            foreach($studentsf as $student){
+                
+                $studentID = intval($student->id);
+                $cur = sectioning::where('owner_id', intval($studentID))->where('section', intval($sectionID))->where('semester', intval($sem))->where('academic_year', $year)->first();
+                
+                
+                if($cur && in_array($studentID ,$getStudents)){
+                    array_push($students, $student);
+                }
+            }
+
+           
+          
+    
+            $course = array();
+            foreach($students as $id){
+    
+                $cur = studentCourse::where('ownerID', intval($id->id))->first();
+                $temp = listCourse::where('id', $cur->course)->first();
+                $course[$id->id] = $temp->course;
+            }
+    
+    
+            $sectioning = array();
+            foreach($students as $id){
+    
+                $cur = sectioning::where('owner_id', intval($id->id))->exists();
+    
+    
+                if($cur){
+                    $cur = sectioning::where('owner_id', intval($id->id))->where('section', intval($sectionID))->where('semester', intval($sem))->where('academic_year', intval($year))->first();
+                    $temp = AdminSection::where('id', $cur->section)->first();
+                    $sectioning[$id->id] = $temp->section;
+                }
+                else{
+                    $sectioning[$id->id] = 'N/A';
+                }
+               
+            }
+    
+    
+            
+            return view('admin.grade_reports', compact('semID','sectionID','courseID','yearID','courseName','sectionName','yearName','dropdownlistAdminSection1stSem','dropdownlistAdminSection2ndSem','dropdownlistCourse','dropdownyearing','students', 'course', 'sectioning'));
+        
+        
+        
     }
 
-    public function reports_of_grades(Request $request, $id, $mode){
+    public function reports_of_grades(Request $request, $id, $mode, $academicYear){
 
         $cur = AdminStudent::where('id', $id)->exists();
 
@@ -106,24 +203,24 @@ class AdminGrades extends Controller
 
 
                     $student_list_w_sub_teacher = student_list_w_sub_teacher::where('stud_id', $studentId)->get();
-                    
+                   
                     $dropdown = array();
                     foreach($student_list_w_sub_teacher as $ownerID){
                         
 
-
-                        $studentCourse = teacher_sub::where('id', $ownerID->owner_id)->first();
+                        
+                        $studentCourse = teacher_sub::where('id', $ownerID->owner_id)->where('academic_year', $academicYear)->first();
                         $sems = [
                             '',
-                            ' - 1st Semester',
-                            ' - 2nd Semester',
+                            '1st Semester',
+                            '2nd Semester',
 
                         ];
-                    
-                        $Semesters = $studentCourse->academic_year . $sems[$studentCourse->semester];
+                        $sections = $studentCourse->section_id;
+                        $Semesters = $sems[$studentCourse->semester];
                         if(!array_key_exists($Semesters, $dropdown)){
 
-                            $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent];
+                            $dropdown[$Semesters] = [$academicYear, $studentCourse->semester,$Semesters,$id,$courseStudent,$sections];
                         
                         }
                     
@@ -145,7 +242,8 @@ class AdminGrades extends Controller
 
 
     }
-    public function grade_reports_picked(Request $request, $year, $semester, $id, $course, $printable, $mode){
+    public function grade_reports_picked(Request $request, $year, $semester, $id, $course, $printable, $mode, $sections){
+        $sectioningIds = $sections;
         $mode = $mode;
         $yearIDs = $year;
         $semesterIDsp = $semester;
@@ -293,44 +391,58 @@ class AdminGrades extends Controller
                     
                 }
                    
-              
-            
+        
           
                 $gradesStudent = array();
                 $counts = 0;
                 // //print_r($subjecting);
                 // return;
-                
+                $AdminCuriculumsf = student_list_w_sub_teacher::where('stud_id', $studentIDs)->get();
 
-                foreach($subjecting as $subjects){
-    
-                    $AdminCuriculums = AdminSubject::where('id', $subjects)->first();
-        
-                    $subjectName = $AdminCuriculums->title;
-                    $subjectCode = $AdminCuriculums->sub_code;
-                    $subjectLecture = $AdminCuriculums->lecture;
-                    $subjectLab = $AdminCuriculums->lab;
-                    
-    
-                    $teacher_sub = teacher_sub::where('subject_id', $subjects)->where('course_id', $course)->where('semester', $semester)->where('academic_year', $year)->first();
-                    
+                $tempArray = array();
+                foreach($AdminCuriculumsf as $subjectsfs){
+
+                    $teacher_sub = teacher_sub::where('id', $subjectsfs->owner_id)->where('semester', $semesterIDsp)->where('academic_year', $yearIDs)->first();
                     if($teacher_sub){
+                        $subjects = $teacher_sub->subject_id;
+                        $teacherID = $teacher_sub->owner_id;
+
+                        $AdminCuriculumsTeracher = AdminTeacher::where('id', $teacherID)->first();
+                        $teacherName = $AdminCuriculumsTeracher->firstname . ' ' . $AdminCuriculumsTeracher->lastname;
+                        $AdminCuriculums = AdminSubject::where('id', $subjects)->first();
+        
+                        $subjectName = $AdminCuriculums->title;
+                        $subjectCode = $AdminCuriculums->sub_code;
+                        $subjectLecture = $AdminCuriculums->lecture;
+                        $subjectLab = $AdminCuriculums->lab;
+
                         $teacherSection = $teacher_sub->section_id;
                         $teacherSection = AdminSection::where('id', $teacherSection)->first();
                         $teacherSection = $teacherSection->section;
-                        $student_list_w_sub_teacher = student_list_w_sub_teacher::where('owner_id', $teacher_sub->id)->where('stud_id', $id)->first();
-                        $grades = $student_list_w_sub_teacher->gradeFinals;
+                        if($subjectsfs->gradeFinals != null){
+                            $grades = $subjectsfs->gradeFinals;
+                        }
+                        else{
+                            $grades = '-';
+                        }
                         
+
                     }
-                    else{
-                        $teacherSection = '-';
-                      
+                 
+                   
+
+                 
                     
-                        $grades = '-';
-                    }
+                    ////SECS
+
+                 
+                   
+
+                   
+                    
     
                     $gradesStudent[$counts] = [
-    
+                        'teachers' => $teacherName,
                         'subjectName' => $subjectName,
     
                         'subjectCode' => $subjectCode,
@@ -432,15 +544,15 @@ class AdminGrades extends Controller
                         $studentCourse = teacher_sub::where('id', $ownerID->owner_id)->first();
                         $sems = [
                             '',
-                            ' - 1st Semester',
-                            ' - 2nd Semester',
+                            '1st Semester',
+                            '2nd Semester',
     
                         ];
-                     
-                        $Semesters = $studentCourse->academic_year . $sems[$studentCourse->semester];
+                        $sections = $studentCourse->section_id;
+                        $Semesters = $sems[$studentCourse->semester];
                         if(!array_key_exists($Semesters, $dropdown)){
     
-                            $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent];
+                            $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent,$sections];
                           
                         }
                     
@@ -470,7 +582,7 @@ class AdminGrades extends Controller
 
 
         ///IF MODE != 2//////////////////////////////////////
-        if($semester == 2005){
+            if($semester == 2005){
 
             $AdminCuriculum = AdminCuriculum::where('courseID', $course)->get();
 
@@ -574,7 +686,7 @@ class AdminGrades extends Controller
                         $subjectLab = $AdminCuriculums->lab;
                         
         
-                        $teacher_sub = teacher_sub::where('subject_id', $subjects)->where('course_id', $courseCodes)->where('semester', $semester)->where('academic_year', $namingYearSem)->first();
+                        $teacher_sub = teacher_sub::where('subject_id', $subjects)->where('course_id', $course)->where('section_id', $sectioningIds)->where('academic_year', $year)->first();
                         
                         if($teacher_sub){
                             $teacherSection = $teacher_sub->section_id;
@@ -750,15 +862,15 @@ class AdminGrades extends Controller
                             $studentCourse = teacher_sub::where('id', $ownerID->owner_id)->first();
                             $sems = [
                                 '',
-                                ' - 1st Semester',
-                                ' - 2nd Semester',
+                                '1st Semester',
+                                '2nd Semester',
         
                             ];
-                         
-                            $Semesters = $studentCourse->academic_year . $sems[$studentCourse->semester];
+                            $sections = $studentCourse->section_id;
+                            $Semesters = $sems[$studentCourse->semester];
                             if(!array_key_exists($Semesters, $dropdown)){
         
-                                $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent];
+                                $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent,$sections];
                               
                             }
                         
@@ -917,7 +1029,7 @@ class AdminGrades extends Controller
                     $subjectLab = $AdminCuriculums->lab;
                     
     
-                    $teacher_sub = teacher_sub::where('subject_id', $subjects)->where('course_id', $course)->where('semester', $semester)->where('academic_year', $year)->first();
+                    $teacher_sub = teacher_sub::where('subject_id', $subjects)->where('course_id', $course)->where('section_id', $sectioningIds)->where('academic_year', $year)->first();
                     
                     
 
@@ -1048,15 +1160,15 @@ class AdminGrades extends Controller
                         $studentCourse = teacher_sub::where('id', $ownerID->owner_id)->first();
                         $sems = [
                             '',
-                            ' - 1st Semester',
-                            ' - 2nd Semester',
+                            '1st Semester',
+                            '2nd Semester',
     
                         ];
-                     
-                        $Semesters = $studentCourse->academic_year . $sems[$studentCourse->semester];
+                        $sections = $studentCourse->section_id;
+                        $Semesters =  $sems[$studentCourse->semester];
                         if(!array_key_exists($Semesters, $dropdown)){
     
-                            $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent];
+                            $dropdown[$Semesters] = [$studentCourse->academic_year, $studentCourse->semester,$Semesters,$id,$courseStudent,$sections];
                           
                         }
                     
@@ -1090,6 +1202,258 @@ class AdminGrades extends Controller
 
 
 
+    public function studentlist_reports(Request $request, $sems, $year, $sec){
+        $dropdownsSEction = array();
+        $firstGet = 0;
+        if($sems != 'original'){
+            
+            $alls = AdminSection::where('semester', $sems)->orderBy('section')->get();
+            foreach($alls as $items){
+                
+                $tempArray = array();
+                $tempArray['academic_year'] = $year;
+                $tempArray['semester'] = $sems;
+
+                if($items->semester == 1){
+                    $semester = "1ST SEMESTER";
+                }
+                else{
+                    $semester = "2ND SEMESTER"; 
+                }
+
+                $tempArray['name'] = $items->section;
+
+                $tempArray['section'] = $items->id;
+                if($firstGet == 0){
+                    $firstGet = $items->id;
+                }
+                
+                $dropdownsSEction['"'.$tempArray['name'].'"'] = $tempArray;
+
+
+            }
+
+            
+            if($sec == 'original'){
+                $alls = array();
+                if($alls){
+                    $section = $alls->section;
+                    $sectionsDisplay = $section;
+                }
+                else{
+                    $sectionsDisplay = 'All';
+                }
+                
+
+                
+                $all_sections = sectioning::
+                where('academic_year', $year)->where('semester', $sems)->get();
+                if(!$all_sections){
+                    return redirect()->route("admin.studentlist_reports", ['year' => 'original', 'sems' => 'original', 'sec' => 'original']);
+                }
+                if($sems == 1){
+                    $semester = "1ST SEMESTER";
+                }
+                else{
+                    $semester = "2ND SEMESTER"; 
+                }
+                $semesterDisplay = $year . ' ' . $semester;
+            }
+            else{
+                $alls = AdminSection::where('id', $sec)->first();
+             
+                if(!$alls){
+                    return redirect()->route("admin.studentlist_reports", ['year' => 'original', 'sems' => 'original', 'sec' => 'original']);
+                }
+                $section = $alls->section;
+                $sectionsDisplay = $section;
+
+                $all_sections = sectioning::
+                where('academic_year', $year)->where('semester', $sems)->where('section', $sec)->get();
+                if(!$all_sections){
+                    return redirect()->route("admin.studentlist_reports", ['year' => 'original', 'sems' => 'original', 'sec' => 'original']);
+                }
+                if($sems == 1){
+                    $semester = "1ST SEMESTER";
+                }
+                else{
+                    $semester = "2ND SEMESTER"; 
+                }
+                $semesterDisplay = $year . ' ' . $semester;
+                
+            }
+            
+
+        }
+        else{
+
+            
+                $acads = acadYear::where('current', '1')->first();
+                $acads = $acads->year;
+                
+                $all_sections = sectioning::
+                where('academic_year', $acads)->get();
+    
+                $semesterDisplay = 'School year';
+
+                $sectionsDisplay = 'Section';
+            
+            
+
+         
+        }
+
+        $studentsf = array();
+        foreach($all_sections as $students){
+            $Adminsection = AdminStudent::where('id', intval($students->owner_id))->first();
+
+            if($Adminsection){
+                if($students->semester == 1){
+                    $semester = "1ST SEMESTER";
+                }
+                else{
+                    $semester = "2ND SEMESTER"; 
+                }
+
+                $Adminsection['semester'] = $students->academic_year .' '. $semester;
+
+                $Adminsection['remarkings'] = $students->markings;
+
+                $section = Adminsection::where('id', $students->section)->first();
+                $Adminsection['section'] = $section->section;
+
+                $sectionf = listCourse::where('id', $section->track)->first();
+                $Adminsection['course'] = $sectionf->course;
+            
+                array_push($studentsf, $Adminsection);
+            }
+           
+        }
+
+        $dropdowns = array();
+        $alls = sectioning::all();
+        $count = 0;
+        foreach($alls as $items){
+            $count++;
+            $tempArray = array();
+            $tempArray['academic_year'] = $items->academic_year;
+            $tempArray['semester'] = $items->semester;
+
+            if($items->semester == 1){
+                $semester = "1ST SEMESTER";
+            }
+            else{
+                $semester = "2ND SEMESTER"; 
+            }
+            $tempArray['section'] = 'original';
+
+            
+
+            $tempArray['name'] = $items->academic_year . ' ' . $semester;
+
+            $dropdowns['"'.$tempArray['name'].'"'] = $tempArray;
+
+            
+        }
+
+
+        
+        $sectionID = $sec;
+        $acads = $year;
+        $semesterID = $sems;
+
+        
+
+        
+        
+        
+        
+        return view('admin.studentlist_reports', compact('sectionID','acads','semesterID','dropdownsSEction','sectionsDisplay','semesterDisplay','studentsf','dropdowns','all_sections'));
+    }
+
+
+    public function print_student_reports(Request $request, $semester, $year, $section){
+       
+        $studSectionLIst = array();
+        $selection = $request->input('selection');
+        
+       
+        if($semester != 'original' && $year != 'original'  && $section != 'original'){
+            $all_sections = sectioning::where('section', $section)->where('academic_year', $year)->where('semester', $semester)->orderBy('created_at', 'asc')->get();
+            $sectionf = Adminsection::where('id', $section)->first();
+            $section = $sectionf->section;
+            $adviser = AdminTeacher::where('id', $sectionf->adviser)->first();
+            if($adviser){
+                $adviser = $adviser->firstname . ' ' . $adviser->lastname;
+            }
+            else{
+                $adviser = "N/A";
+            }
+        }
+        else{
+            $section = 'ALL';
+            $adviser = "N/A";
+            $all_sections = sectioning::where('academic_year', $year)->where('semester', $semester)->orderBy('created_at', 'asc')->get();
+        }
+        if(!$all_sections){
+            return redirect()->route("admin.studentlist_reports", ['year' => 'original', 'sems' => 'original', 'sec' => 'original']);
+        }
+        
+        
+        $REGULAR = 0;
+        $IRREGULAR = 0;
+        foreach($all_sections as $studnes){
+            $Adminsection = AdminStudent::where('id', intval($studnes->owner_id))->first();
+
+            if($Adminsection){
+                $sectionsf = Adminsection::where('id', $studnes->section)->first();
+                if($sectionsf){
+                    $Adminsection['section'] = $sectionsf->section;
+
+                    $sectionf = listCourse::where('id', $sectionsf->track)->first();
+                    if($sectionf){
+                        $Adminsection['course'] = $sectionf->course;
+                    }
+                    
+                }
+                
+
+          
+          
+
+                $Adminsection['remarkings'] = $studnes->markings;
+                $Adminsection['creatingats'] = $studnes->created_at;
+                if($studnes->markings == null){
+                    $REGULAR++;
+                }
+                else{
+                    $IRREGULAR++;
+                }
+                array_push($studSectionLIst,$Adminsection);
+            }
+           
+           
+        }
+
+        usort($studSectionLIst, function ($a, $b) {
+            return [$a->lastname, $a->firstname] <=> [$b->lastname, $b->firstname];
+        });
+        
+        // // Display the sorted array
+        // foreach ($studSectionLIst as $student) {
+        //     echo "Lastname: {$student->lastname}, Firstname: {$student->firstname}<br>";
+        // }
+
+        if($semester == 1){
+            $semester = "1ST SEMESTER";
+        }
+        else{
+            $semester = "2ND SEMESTER"; 
+        }
+        $semesterDisplay = $year . ' ' . $semester;
+        return view('admin.print_student_reports', compact('selection', 'semesterDisplay','studSectionLIst', 'section', 'adviser','IRREGULAR','REGULAR'));
+
+    }
 
     
 }

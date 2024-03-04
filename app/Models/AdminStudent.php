@@ -64,5 +64,6 @@ class AdminStudent extends Model
         'emergency_contact',
 
         'emergency_address',
+        'academic_year',
     ];
 }

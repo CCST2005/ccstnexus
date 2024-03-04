@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Session;
 use App\Models\Admin_Model;
+use App\Models\acadYear;
 use App\Models\AdminAccInfo;
+use App\Models\AdminStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -18,9 +20,7 @@ class AdminController extends Controller
 
     public function index()
     {        
-
-
-
+        
       
 
 
@@ -127,6 +127,9 @@ class AdminController extends Controller
                     return back()->with('disabled', $success);
                     
                 }
+                $acads = acadYear::where('current', '1')->first();
+         
+                $acadsNewVar = $acads->year;
 
                 $darkmode = AdminAccInfo::where('owner_id', $admin_id)->first();
 
@@ -142,7 +145,7 @@ class AdminController extends Controller
                         $newDepartments = [
                             'College' => ['title' => 'College', 
                             'routes' => 'admin.College_curriculum',
-                            'route' => route('admin.College_curriculum')
+                            'route' => route('admin.College_curriculum', ['year' => $acadsNewVar])
                           ],
                         ];
 
@@ -176,7 +179,7 @@ class AdminController extends Controller
                 foreach($searchingDept as $found){
                     
                     $id = $found->id;
-                    $route = route('admin.section', ['department' => $id]);
+                    $route = route('admin.section', ['department' => $id, 'year' => 'original', 'semester' => 'original', 'course' => 'original']);
                     $newDepartments = [
                         $found->title => ['title' => $found->title, 
                         'route' => $route,

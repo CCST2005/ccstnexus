@@ -12,7 +12,7 @@ class teacher_sub extends Model
     protected $table = 'teacher_subjects';
 
     protected $fillable = [
-        'id', 'owner_id', 'academic_year', 'subject_id', 'course_id', 'section_id', 'semester', 'editTable',
+        'id', 'owner_id', 'academic_year', 'subject_id', 'course_id', 'section_id', 'semester', 'editTable', 'done',
        
     ];
 }

@@ -7,8 +7,11 @@ use App\Models\listCourse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Models\AdminSubject;
+use App\Models\_subject_for_curiculum;
+use App\Models\AdminCuriculum;
 use App\Models\studentCourse;
 use App\Models\AdminStudent;
+use App\Models\disabling_section_teacher;
 use App\Models\teacher_sub;
 use App\Models\acadYear;
 use App\Models\student_list_w_sub_teacher;
@@ -17,19 +20,49 @@ class teacherSections extends Controller
 {
 
     public function index(){
+        $existingEmployeeCodeffsass = disabling_section_teacher::where('id', 1)->first();
+        $checkDisableAdding = $existingEmployeeCodeffsass->disable;
+
+
         $track = listCourse::all();
         $subject = AdminSubject::all();
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
-        return view('teacher.add_section', compact('track', 'subject', 'acads'));
+
+        if($checkDisableAdding == 1){
+            return view('teacher.disabledPage');
+        }
+        else{
+            return view('teacher.add_section', compact('track', 'subject', 'acads'));
+        }
+        
   
     }
+
+    public function settings(){
+       
+        $infos = AdminTeacher::where('id', strval(session('user_logged_teacher')))->first();
+       
+        return view('teacher.setting', compact('infos'));
+  
+    }
+
     public function add_section(){
+        $existingEmployeeCodeffsass = disabling_section_teacher::where('id', 1)->first();
+        $checkDisableAdding = $existingEmployeeCodeffsass->disable;
+
         $track = listCourse::all();
         $subject = AdminSubject::all();
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
-        return view('teacher.add_section', compact('track', 'subject', 'acads'));
+
+        if($checkDisableAdding == 1){
+            return view('teacher.disabledPage');
+        }
+        else{
+            return view('teacher.add_section', compact('track', 'subject', 'acads'));
+        }
+      
   
     }
     public function gettingSectionTeacher(Request $request)
@@ -53,6 +86,46 @@ class teacherSections extends Controller
         
         
         
+
+
+    
+            
+        return response()->json(['strands' => $items, 'ids' => $ids]);
+       
+    }
+
+
+    public function gettingfillSubsTeacher(Request $request)
+    {
+        if ($request->isMethod('get')) {
+            return redirect()->route('teacher.section');
+        }
+
+        $strands = '';
+        $items = array();
+        $ids = array();
+        $requests = $request->input('gradeLeve');
+
+
+        $strandsfs = AdminCuriculum::where('courseID', $requests)->get();
+        foreach($strandsfs as $idsr){
+            $idCuri = $idsr->id;
+            
+            $strands = _subject_for_curiculum::where('owner_id', $idCuri)->get();
+            foreach($strands as $iteming){
+                $itemingf = $iteming->sub_code;
+
+
+                $strandsf = AdminSubject::where('id', $itemingf)->first();
+      
+                
+                    array_push($items, $strandsf->sub_code .' - '. $strandsf->title);
+                    array_push($ids, $strandsf->id);
+                
+            }
+        
+        
+        }
 
 
     
@@ -105,15 +178,18 @@ class teacherSections extends Controller
                 if($sectioningID){
 
                 
-                    $sectioningID = sectioning::where('owner_id', $id->id)->where('academic_year', $acads)->where('semester', $semester)->first();
-                    $sectioning = Adminsection::where('id', $sectioningID->section)->first();
-                    if($Adminsection){
-                        $Adminsection["sectioning"] = $sectioning->section;
-                        $Adminsection["sectionId"] = $sectioningID->section;
-                        
-                        $students[] = $Adminsection;
-
+                    $sectioningID = sectioning::where('owner_id', $id->id)->where('academic_year', $acads)->where('semester', $semester)->where('section', $sections)->first();
+                    if($sectioningID){
+                        $sectioning = Adminsection::where('id', $sectioningID->section)->first();
+                        if($Adminsection){
+                            $Adminsection["sectioning"] = $sectioning->section;
+                            $Adminsection["sectionId"] = $sectioningID->section;
+                            
+                            $students[] = $Adminsection;
+    
+                        }
                     }
+                   
                 }
                
                     
@@ -146,36 +222,44 @@ class teacherSections extends Controller
     public function updating_section_student (Request $request, $id)
     {
         
-        $getingAlls = student_list_w_sub_teacher::where('owner_id', $id)->get();
+        $getingAllsDeleted = student_list_w_sub_teacher::where('owner_id', intval($id))->get();
         
         $currentStudent = array();
         $currentStID = array();
-        foreach ($getingAlls as $iding) {
-            $currentStudent[$iding->stud_id] = $iding->gradeFinals;
-            array_push( $currentStID, $iding->stud_id);
+        foreach ($getingAllsDeleted as $iding) {
+            $currentStudent[intval($iding->stud_id)] = $iding->gradeFinals;
+            array_push( $currentStID, intval($iding->stud_id));
         }
 
 
-        $getingAlls = student_list_w_sub_teacher::where('owner_id', $id)->delete();
+        $getingAllsDeleted = student_list_w_sub_teacher::where('owner_id', $id)->delete();
 
-        $checkedCheckboxes = $request->input('checkboxes', []);
+        $arraALL = $request->input('checkingBoxs');
       
 
 
+        $dataArray = json_decode($arraALL, true);
+        $checkedCheckboxes = array_keys($dataArray);
+        
+        // Output the keys
+        // print_r($keys);
+
+        // return;
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
 
 
         $randomNumber = $id; 
-     
-
+        // print_r($currentStID);
+        // print '<br>';
+  
 
         
         
 
         foreach ($checkedCheckboxes as $checkboxValue) {
 
-            if(in_array($checkboxValue, $currentStID )){
+            if(in_array(intval($checkboxValue), $currentStID )){
               
                 $grades = $currentStudent[$checkboxValue];
                 
@@ -195,7 +279,6 @@ class teacherSections extends Controller
 
         $add_info_admin->save();
 
-        
 
 
    
@@ -218,6 +301,13 @@ class teacherSections extends Controller
 
     public function adding_section_student(Request $request)
     {
+        $existingEmployeeCodeffsass = disabling_section_teacher::where('id', 1)->first();
+        $checkDisableAdding = $existingEmployeeCodeffsass->disable;
+
+        if($checkDisableAdding == 1){
+            return redirect()->route('teacher.section');
+        }
+
         $acads = acadYear::where('current', '1')->first();
         $acads = $acads->year;
 
@@ -238,6 +328,7 @@ class teacherSections extends Controller
             'owner_id'  => strval(session('user_logged_teacher')),
             'semester'  => strval(trim($request->input('semester'))),
             'editTable' => '1',
+            'done' => '0',
         ]);
 
         $add_info_admin->save();
@@ -364,10 +455,10 @@ class teacherSections extends Controller
 
 
         if($academic == 'all'){
-            $existingEmployeeCode = teacher_sub::where('owner_id', session('user_logged_teacher'))->get();
+            $existingEmployeeCode = teacher_sub::where('owner_id', session('user_logged_teacher'))->orderBy('created_at', 'desc')->get();
         }
         else{
-            $existingEmployeeCode = teacher_sub::where('owner_id', session('user_logged_teacher'))->where('academic_year', $academic)->get();
+            $existingEmployeeCode = teacher_sub::where('owner_id', session('user_logged_teacher'))->where('academic_year', $academic)->orderBy('created_at', 'desc')->get();
         }
 
         
@@ -600,15 +691,18 @@ class teacherSections extends Controller
                 if($sectioningID){
 
                 
-                    $sectioningID = sectioning::where('owner_id', $id->id)->where('academic_year', $acads)->where('semester', $semester)->first();
-                    $sectioning = Adminsection::where('id', $sectioningID->section)->first();
-                    if($Adminsection){
-                        $Adminsection["sectioning"] = $sectioning->section;
-                        $Adminsection["sectionId"] = $sectioningID->section;
-                        
-                        $students[] = $Adminsection;
-
+                    $sectioningID = sectioning::where('owner_id', $id->id)->where('academic_year', $acads)->where('semester', $semester)->where('section', $sections)->first();
+                    if($sectioningID){
+                        $sectioning = Adminsection::where('id', $sectioningID->section)->first();
+                        if($Adminsection){
+                            $Adminsection["sectioning"] = $sectioning->section;
+                            $Adminsection["sectionId"] = $sectioningID->section;
+                            
+                            $students[] = $Adminsection;
+    
+                        }
                     }
+                   
                 }
                
                     
@@ -650,8 +744,8 @@ class teacherSections extends Controller
         $idko = $id;
 
         $finding_user_acc = teacher_sub::where('id', $id)->where('owner_id', session('user_logged_teacher'))->first();
-
-
+        $dones = $finding_user_acc->done;
+        $ditTable = $finding_user_acc->editTable;
         $semester = $finding_user_acc->semester;
         $subject = $finding_user_acc->subject_id;
         $track = $finding_user_acc->course_id;
@@ -731,7 +825,7 @@ class teacherSections extends Controller
             $section = Adminsection::where('id', $sectionID)->first();
             $section = $section->section;
 
-            return view('teacher.upload_finals', compact('gradesFinal', 'idko', 'selectedStud','students','subject','track','subjectNameCode','subjectName','courseName', 'semester', 'semesterID', 'section', 'sectionID', 'acads'));
+            return view('teacher.upload_finals', compact('dones','ditTable','gradesFinal', 'idko', 'selectedStud','students','subject','track','subjectNameCode','subjectName','courseName', 'semester', 'semesterID', 'section', 'sectionID', 'acads'));
            
         }
 
@@ -755,6 +849,128 @@ class teacherSections extends Controller
 
             $add_info_admin->save();
         }
+        $record_admin = teacher_sub::where('id', $id)->first();
+
+        if ($record_admin) {
+           
+            $record_admin->done = '1';
+            $record_admin->save();
+        }
+
+          
+
+        $success = [
+
+            'icon' => 'success',
+            'title' => 'Saved successfully!',
+        ];
+
+        
+
+        return redirect()->back()->with('success', $success);
+
+    }
+
+
+    public function checkIfTeacherExist(Request $request)
+    {
+        if ($request->isMethod('get')) {
+            return redirect()->route('teacher.index');
+        }
+        
+     
+
+        $existingemail = AdminTeacher::where('email', trim($request->input('datacheckgmail')))->first();
+
+    
+
+      if ($existingemail){
+            return response()->json([ 'email' => true]);
+        }
+        else {
+            
+            return response()->json([ 'email' => false]);
+        }
+    }
+
+    public function updating_teachers (Request $request, $id)
+    {
+        if ($request->isMethod('get')) {
+            return redirect()->route('teacher.index');
+        }
+        
+
+        $request->validate([
+           
+            'first_name' => 'required|string|between:2,100|regex:/^[A-Za-zñÑ\s]+$/',
+            'middle_name' => 'nullable|string|between:2,100|regex:/^[A-Za-zñÑ\s]+$/',
+            'last_name' => 'required|string|between:2,100|regex:/^[A-Za-zñÑ\s]+$/',
+            'password' => 'nullable|string|between:8,30',
+            'gmail' => 'required|string|between:5,100|email',
+            'image' => 'image|mimes:jpeg,jpg|max:10048',
+           
+        ]);
+
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+
+            
+            $numbers = rand(1, 100) . rand(100, 200) . rand(200, 1000) . rand(10, 50) . rand(100, 5000);
+            $imageFile = $request->file('image');
+            $imageName = trim($request->input('first_name')) . '_' . $numbers .'.jpg';
+              // Specify the full path to the destination directory
+            $destinationPath = public_path('dist/img/profiles');
+
+            // Ensure the destination directory exists; create it if not
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            // Move the file to the destination directory
+            $imageFile->move($destinationPath, $imageName);
+
+            // The $imagePath will contain the relative path within the public directory
+            $imagePath = 'dist/img/profiles/' . $imageName;
+        }
+        else{
+            $imageName = trim($request->input('imaging'));
+        }
+        
+       
+        $firstname =  trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $request->input('first_name'))))));
+        $lastname =  trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $request->input('last_name'))))));
+        $middlename =trim(preg_replace('/\s+/', ' ', ucwords(strtolower(str_replace(["\n", ' ', 'Ñ', 'Ñ'], [' ', ' ', 'ñ', 'ñ'], $request->input('middle_name'))))));
+        $email = trim($request->input('gmail'));
+      
+        $password = trim($request->input('password'));
+        $sex = trim($request->input('sex'));
+
+    
+
+        $record_admin = AdminTeacher::where('id', $id)->first();
+
+        if ($record_admin) {
+            if($password != ""){
+                $record_admin->password = Hash::make(trim($password));
+            }
+
+            $record_admin->email = $email;
+  
+            $record_admin->firstname = $firstname;
+            $record_admin->middlename = $middlename;
+            $record_admin->lastname = $lastname;
+            
+            $record_admin->sex = $sex;
+            $record_admin->image_file_name = $imageName;
+
+            $record_admin->save();
+        }
+
+
+
+        
+
 
         $success = [
 
@@ -763,8 +979,75 @@ class teacherSections extends Controller
         ];
 
         
+        $darkmode = AdminTeacher::where('id', $id)->first();
 
-        return redirect()->back()->with('success', $success);
+        $middle = ($darkmode->middlename)? $darkmode->middlename[0]."." : "";
+        
+        $fullame = $darkmode->lastname . ", " . $darkmode->firstname . " " . $middle;
 
+
+        $links = $darkmode->image_file_name;
+
+
+        session([ 'fullname' => $fullame, 'links' => $links]);
+        
+         return back()->with('success', $success);
+
+
+    }
+
+
+    public function studentList(Request $request){
+        
+        
+        $students = AdminStudent::all();
+        $schools = array();
+        
+     
+
+
+
+            $students = AdminStudent::all();
+ 
+
+        $course = array();
+        foreach($students as $id){
+
+            $cur = studentCourse::where('ownerID', $id->id)->first();
+            $temp = listCourse::where('id', $cur->course)->first();
+            $course[$id->id] = $temp->course;
+        }
+
+
+        $sectioning = array();
+        foreach($students as $id){
+
+            $cur = sectioning::where('owner_id', $id->id)->exists();
+
+
+            if($cur){
+                $cur = sectioning::where('owner_id', $id->id)->first();
+                $temp = AdminSection::where('id', $cur->section)->first();
+                $sectioning[$id->id] = $temp->section;
+            }
+            else{
+                $sectioning[$id->id] = 'N/A';
+            }
+           
+        }
+
+
+
+        return view('teacher.teacherSections', compact('students', 'schools', 'course', 'sectioning'));
+    }
+
+    public function disabledPage(){
+        return view('teacher.disabledPage');
+    }
+
+
+
+    public function welcome(){
+        return view('teacher.welcome');
     }
 }
